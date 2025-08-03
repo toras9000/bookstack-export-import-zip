@@ -95,12 +95,3 @@ return await Paved.ProceedAsync(async () =>
 });
 
 record ExportContext(BookStackClientHelper Helper, HttpClient Http, JsonSerializerOptions JsonOptions, DirectoryInfo ExportDir, CancellationToken CancelToken);
-
-ShelfMetadata createMetadata(ReadShelfResult shelf, ContentPermissionsItem permissions)
-    => new(
-        shelf.id, shelf.name, shelf.slug, shelf.description_html,
-        shelf.books.Select(b => b.id).ToArray(),
-        shelf.created_at, shelf.updated_at,
-        shelf.created_by, shelf.updated_by, shelf.owned_by,
-        shelf.tags, shelf.cover, permissions
-    );
