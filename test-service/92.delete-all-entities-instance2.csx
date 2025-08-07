@@ -9,9 +9,9 @@ using BookStackApiClient.Utility;
 using Kokuban;
 using Lestaly;
 
-await Paved.RunAsync(async () =>
+return await Paved.ProceedAsync(noPause: Args.RoughContains("--no-pause"), async () =>
 {
-    var instance = settings.Instance1;
+    var instance = settings.Instance2;
 
     // Prepare console
     using var outenc = ConsoleWig.OutputEncodingPeriod(Encoding.UTF8);
