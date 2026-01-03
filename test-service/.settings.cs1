@@ -1,0 +1,56 @@
+#!/usr/bin/env -S dotnet run --file
+#:package Lestaly.General@0.114.0
+using Lestaly;
+
+public record SettingsDocker(FileInfo Compose);
+public record SettingsDatabase(ushort Port, string Host, string Username, string Password, string Database);
+public record SettingsBookStack(string Host, ushort Port, string ApiTokenName, string ApiTokenId, string ApiTokenSecret)
+{
+    public Uri Url { get; } = new Uri($"http://{Host}:{Port}/");
+    public Uri ApiEndpoint { get; } = new Uri($"http://{Host}:{Port}/api/");
+}
+public record SettingsInstance(SettingsDocker Docker, SettingsDatabase Database, SettingsBookStack BookStack);
+
+public class Settings(DirectoryInfo contextDir)
+{
+    public SettingsInstance Instance1 = new
+    (
+        Docker: new(
+            Compose: contextDir.RelativeFile("./docker/compose1.yml")
+        ),
+        Database: new(
+            Host: "localhost",
+            Port: 8830,
+            Database: "bookstack_store",
+            Username: "bookstack_user",
+            Password: "bookstack_pass"
+        ),
+        BookStack: new(
+            Host: "localhost",
+            Port: 8831,
+            ApiTokenName: "TestToken",
+            ApiTokenId: "00001111222233334444555566667777",
+            ApiTokenSecret: "88889999aaaabbbbccccddddeeeeffff"
+        )
+    );
+
+    public SettingsInstance Instance2 = new(
+        Docker: new(
+            Compose: contextDir.RelativeFile("./docker/compose2.yml")
+        ),
+        Database: new(
+            Host: "localhost",
+            Port: 8840,
+            Database: "bookstack_store",
+            Username: "bookstack_user",
+            Password: "bookstack_pass"
+        ),
+        BookStack: new(
+            Host: "localhost",
+            Port: 8841,
+            ApiTokenName: "TestToken",
+            ApiTokenId: "444455556666777788889999aaaabbbb",
+            ApiTokenSecret: "ccccddddeeeeffff0000111122223333"
+        )
+    );
+}

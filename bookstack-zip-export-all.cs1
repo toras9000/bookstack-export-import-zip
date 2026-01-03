@@ -1,16 +1,15 @@
-#r "nuget: BookStackApiClient, 25.7.0-lib.1"
-#r "nuget: Kokuban, 0.2.0"
-#r "nuget: Lestaly.General, 0.102.0"
-#load ".common.csx"
-#nullable enable
-using System.Net.Http;
+#!/usr/bin/env -S dotnet run --file
+#:package BookStackApiClient@25.12.0-lib.0
+#:package Kokuban@0.2.0
+#:package Lestaly.General@0.114.0
+#:package RefFile@0.2.0
+#:property PublishAot=false
 using System.Text.Json;
-using System.Text.RegularExpressions;
-using System.Threading;
 using BookStackApiClient;
 using BookStackApiClient.Utility;
 using Kokuban;
 using Lestaly;
+[assembly: RefFile(".common.cs1")]
 
 var settings = new
 {
@@ -36,13 +35,12 @@ var settings = new
 return await Paved.ProceedAsync(async () =>
 {
     // Prepare console
-    using var outenc = ConsoleWig.OutputEncodingPeriod(Encoding.UTF8);
     using var signal = new SignalCancellationPeriod();
 
     // Title display
-    WriteLine($"Exporting data from BookStack");
-    WriteLine($"  Service Address: {settings.BookStack.ServiceUrl}");
-    WriteLine();
+    Console.WriteLine($"Exporting data from BookStack");
+    Console.WriteLine($"  Service Address: {settings.BookStack.ServiceUrl}");
+    Console.WriteLine();
 
     // Create client and helper
     var apiUri = new Uri(settings.BookStack.ServiceUrl, "/api/");
@@ -51,22 +49,22 @@ return await Paved.ProceedAsync(async () =>
     using var helper = new BookStackClientHelper(client, signal.Token);
     helper.LimitHandler += (args) =>
     {
-        WriteLine(Chalk.Yellow[$"Caught in API call rate limitation. Rate limit: {args.Exception.RequestsPerMin} [per minute], {args.Exception.RetryAfter} seconds to lift the limit."]);
-        WriteLine(Chalk.Yellow[$"It will automatically retry after a period of time has elapsed."]);
-        WriteLine(Chalk.Yellow[$"[Waiting...]"]);
+        Console.WriteLine(Chalk.Yellow[$"Caught in API call rate limitation. Rate limit: {args.Exception.RequestsPerMin} [per minute], {args.Exception.RetryAfter} seconds to lift the limit."]);
+        Console.WriteLine(Chalk.Yellow[$"It will automatically retry after a period of time has elapsed."]);
+        Console.WriteLine(Chalk.Yellow[$"[Waiting...]"]);
         return ValueTask.CompletedTask;
     };
 
     // Detect BookStack version
     var system = await helper.Try((c, t) => c.SystemAsync(t));
     var version = BookStackVersion.Parse(system.version);
-    if (version < BookStackVersion.Parse("25.07")) throw new PavedMessageException("Unsupported BookStack version.", PavedMessageKind.Warning);
+    if (version < BookStackVersion.Parse("25.11")) throw new PavedMessageException("Unsupported BookStack version.", PavedMessageKind.Warning);
 
     // Determine output directory
     var exportTime = DateTime.Now;
     var exportDir = settings.Local.ExportDir.RelativeDirectory($"{exportTime:yyyy.MM.dd-HH.mm.ss}").WithCreate();
-    WriteLine($"Export to {exportDir.FullName}");
-    WriteLine();
+    Console.WriteLine($"Export to {exportDir.FullName}");
+    Console.WriteLine();
 
     // Options for saving JSON
     var jsonOptions = new JsonSerializerOptions();
@@ -83,14 +81,15 @@ return await Paved.ProceedAsync(async () =>
     await foreach (var book in context.Helper.EnumerateAllBooksAsync())
     {
         // Indicate the status.
-        WriteLine($"Exporting book: {Chalk.Green[book.name]} ...");
+        Console.WriteLine($"Exporting book: {Chalk.Green[book.name]} ...");
 
         // Export zip
         var bookZipFile = exportDir.RelativeFile($"{book.id:D4}B.{book.name.ToFileName()}.zip");
-        await context.Helper.Try((c, t) => c.ExportBookZipAsync(book.id, t)).AsTask().WriteToFileAsync(bookZipFile, context.CancelToken);
+        var bookZipResult = await context.Helper.Try((c, t) => c.ExportBookZipAsync(book.id, t));
+        await bookZipResult.Stream.WriteToFileAsync(bookZipFile, context.CancelToken);
     }
 
-    WriteLine($"Completed");
+    Console.WriteLine($"Completed");
 
 });
 

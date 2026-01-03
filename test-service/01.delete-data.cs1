@@ -1,12 +1,14 @@
-#r "nuget: Lestaly.General, 0.102.0"
-#load ".settings.csx"
-#nullable enable
+#!/usr/bin/env -S dotnet run --file
+#:package Lestaly.General@0.114.0
+#:package RefFile@0.2.0
 using Lestaly;
 using Lestaly.Cx;
+[assembly: RefFile(".settings.cs1")]
 
-return await Paved.ProceedAsync(noPause: Args.RoughContains("--no-pause"), async () =>
+return await Paved.ProceedAsync(noPause: args.RoughContains("--no-pause"), async () =>
 {
-    WriteLine("Stop service & remove volume");
+    Console.WriteLine("Stop service & remove volume");
+    var settings = new Settings(ThisSource.Directory());
     await "docker".args("compose", "--file", settings.Instance1.Docker.Compose, "down", "--remove-orphans", "--volumes").echo().result().success();
     await "docker".args("compose", "--file", settings.Instance2.Docker.Compose, "down", "--remove-orphans", "--volumes").echo().result().success();
 });

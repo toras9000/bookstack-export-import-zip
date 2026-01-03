@@ -1,30 +1,30 @@
-#r "nuget: BookStackApiClient, 25.7.0-lib.1"
-#r "nuget: Kokuban, 0.2.0"
-#r "nuget: Lestaly.General, 0.102.0"
-#r "nuget: SkiaSharp, 3.119.0"
-#r "nuget: Bogus, 35.6.3"
-#load ".settings.csx"
-#nullable enable
-using System.Net.Http;
-using System.Threading;
-using System.Xml.Linq;
+#!/usr/bin/env -S dotnet run --file
+#:package BookStackApiClient@25.12.0-lib.0
+#:package Kokuban@0.2.0
+#:package Lestaly.General@0.114.0
+#:package SkiaSharp@3.119.1
+#:package Bogus@35.6.5
+#:package RefFile@0.2.0
+#:property PublishAot=false
+using System.Text;
 using Bogus;
 using BookStackApiClient;
 using BookStackApiClient.Utility;
 using Kokuban;
 using Lestaly;
 using SkiaSharp;
+[assembly: RefFile(".settings.cs1")]
 
-return await Paved.ProceedAsync(noPause: Args.RoughContains("--no-pause"), async () =>
+return await Paved.ProceedAsync(noPause: args.RoughContains("--no-pause"), async () =>
 {
-    using var outenc = ConsoleWig.OutputEncodingPeriod(Encoding.UTF8);
     using var signal = new SignalCancellationPeriod();
 
-    WriteLine($"Instance1");
+    Console.WriteLine($"Instance1");
+    var settings = new Settings(ThisSource.Directory());
     await createDummyBooksAsync(settings.Instance1, signal.Token);
 });
 
-async Task createDummyBooksAsync(InstanceSettings settings, CancellationToken cancelToken)
+async Task createDummyBooksAsync(SettingsInstance settings, CancellationToken cancelToken)
 {
     // Number of objects to be generated.
     var random = new RandomContext(
@@ -40,16 +40,16 @@ async Task createDummyBooksAsync(InstanceSettings settings, CancellationToken ca
     var forceGenerate = false;
 
     // Show info
-    WriteLine($"Create dummy data in BookStack.");
-    WriteLine($"BookStack Service URL : {settings.BookStack.Url}");
+    Console.WriteLine($"Create dummy data in BookStack.");
+    Console.WriteLine($"BookStack Service URL : {settings.BookStack.Url}");
 
     // Create client and helper
     using var helper = new BookStackClientHelper(settings.BookStack.ApiEndpoint, settings.BookStack.ApiTokenId, settings.BookStack.ApiTokenSecret, cancelToken);
     helper.LimitHandler += (args) =>
     {
-        WriteLine(Chalk.Yellow[$"Caught in API call rate limitation. Rate limit: {args.Exception.RequestsPerMin} [per minute], {args.Exception.RetryAfter} seconds to lift the limit."]);
-        WriteLine(Chalk.Yellow[$"It will automatically retry after a period of time has elapsed."]);
-        WriteLine(Chalk.Yellow[$"[Waiting...]"]);
+        Console.WriteLine(Chalk.Yellow[$"Caught in API call rate limitation. Rate limit: {args.Exception.RequestsPerMin} [per minute], {args.Exception.RetryAfter} seconds to lift the limit."]);
+        Console.WriteLine(Chalk.Yellow[$"It will automatically retry after a period of time has elapsed."]);
+        Console.WriteLine(Chalk.Yellow[$"[Waiting...]"]);
         return ValueTask.CompletedTask;
     };
 
@@ -70,7 +70,7 @@ async Task createDummyBooksAsync(InstanceSettings settings, CancellationToken ca
     for (var b = 0; b < context.Random.Books.Count(); b++)
     {
         var bookNum = 1 + b;
-        WriteLine($"Create dummy Book {bookNum} ...");
+        Console.WriteLine($"Create dummy Book {bookNum} ...");
         var bookCover = ContentGenerator.CreateTextImage($"Book {bookNum} Cover");
         var book = await helper.Try((c, t) => c.CreateBookAsync(new($"Book {bookNum}", $"Generated {DateTime.Now:yyyy/MM/dd HH:mm:ss.fff}"), bookCover, $"cover.png", t));
 
@@ -84,12 +84,12 @@ async Task createDummyBooksAsync(InstanceSettings settings, CancellationToken ca
             {
                 var pageLabel = $"B{bookNum}-P{contentNum}";
                 var pageLink = $"B{bookNum}/P{contentNum}";
-                WriteLine($"  Create dummy content {contentNum} Page ...");
+                Console.WriteLine($"  Create dummy content {contentNum} Page ...");
                 await createPageAsync(context, book.id, default, pageLabel, pageLink);
             }
             else
             {
-                WriteLine($"  Create dummy content {contentNum} Chapter ...");
+                Console.WriteLine($"  Create dummy content {contentNum} Chapter ...");
                 var chapterLabel = $"B{bookNum}-C{contentNum}";
                 var chapter = await helper.Try((c, t) => c.CreateChapterAsync(new(book.id, $"Chapter {chapterLabel}", $"Generated {DateTime.Now:yyyy/MM/dd HH:mm:ss.fff}"), t));
                 for (var p = 0; p < context.Random.SubPages.Count(); p++)
@@ -97,7 +97,7 @@ async Task createDummyBooksAsync(InstanceSettings settings, CancellationToken ca
                     var pageNum = 1 + p;
                     var pageLabel = $"B{bookNum}-C{contentNum}-P{pageNum}";
                     var pageLink = $"B{bookNum}/C{contentNum}/P{pageNum}";
-                    WriteLine($"    Create dummy page {pageLabel} and materials ...");
+                    Console.WriteLine($"    Create dummy page {pageLabel} and materials ...");
                     await createPageAsync(context, book.id, chapter.id, pageLabel, pageLink);
                 }
             }
@@ -112,19 +112,8 @@ async Task createDummyBooksAsync(InstanceSettings settings, CancellationToken ca
         await helper.Try((c, t) => c.CreateShelfAsync(new($"Shelf {binder.num}", $"Generated {DateTime.Now:yyyy/MM/dd HH:mm:ss.fff}", books: binder.books), imageBin, $"{imageLabel}.png", t));
     }
 
-    WriteLine($"Completed");
+    Console.WriteLine($"Completed");
 }
-
-public record RandomRange(int Min, int Max)
-{
-    public IEnumerable<int> Range() => Enumerable.Range(0, this.Count());
-    public int Count() => Random.Shared.Next(this.Min, this.Max + 1);
-}
-public record RandomContext(RandomRange Books, RandomRange Contents, RandomRange SubPages, RandomRange Images, RandomRange Attaches, RandomRange Shelves)
-{
-    public bool Fifty() => Random.Shared.Next(2) == 0;
-}
-public record GenerationContext(Uri Url, BookStackClientHelper Helper, RandomContext Random);
 
 async ValueTask<PageItem> createPageAsync(GenerationContext context, long book, long? chapter, string pageLabel, string linkPath)
 {
@@ -161,6 +150,17 @@ async ValueTask<PageItem> createPageAsync(GenerationContext context, long book, 
 
     return page;
 }
+
+public record RandomRange(int Min, int Max)
+{
+    public IEnumerable<int> Range() => Enumerable.Range(0, this.Count());
+    public int Count() => Random.Shared.Next(this.Min, this.Max + 1);
+}
+public record RandomContext(RandomRange Books, RandomRange Contents, RandomRange SubPages, RandomRange Images, RandomRange Attaches, RandomRange Shelves)
+{
+    public bool Fifty() => Random.Shared.Next(2) == 0;
+}
+public record GenerationContext(Uri Url, BookStackClientHelper Helper, RandomContext Random);
 
 /// <summary>
 /// Content data generator

@@ -1,24 +1,27 @@
-#r "nuget: Lestaly.General, 0.102.0"
-#r "nuget: Dapper, 2.1.66"
-#r "nuget: MySqlConnector, 2.4.0"
-#r "nuget: BCrypt.Net-Next, 4.0.3"
-#load ".settings.csx"
-#nullable enable
+#!/usr/bin/env -S dotnet run --file
+#:package MySqlConnector@2.5.0
+#:package Dapper@2.1.66
+#:package BCrypt.Net-Next@4.0.3
+#:package Lestaly.General@0.114.0
+#:package RefFile@0.2.0
+#:property PublishAot=false
 using Dapper;
 using Lestaly;
 using MySqlConnector;
+[assembly: RefFile(".settings.cs1")]
 
-return await Paved.ProceedAsync(noPause: Args.RoughContains("--no-pause"), async () =>
+return await Paved.ProceedAsync(noPause: args.RoughContains("--no-pause"), async () =>
 {
-    WriteLine($"Instance1");
+    var settings = new Settings(ThisSource.Directory());
+    Console.WriteLine($"Instance1");
     await makeTestApiTokenAsync(settings.Instance1);
-    WriteLine($"Instance2");
+    Console.WriteLine($"Instance2");
     await makeTestApiTokenAsync(settings.Instance2);
 });
 
-async Task makeTestApiTokenAsync(InstanceSettings settings)
+async Task makeTestApiTokenAsync(SettingsInstance settings)
 {
-    WriteLine("Prepare db connection ...");
+    Console.WriteLine("Prepare db connection ...");
     var config = new MySqlConnectionStringBuilder();
     config.Server = settings.Database.Host;
     config.Port = settings.Database.Port;
@@ -34,14 +37,14 @@ async Task makeTestApiTokenAsync(InstanceSettings settings)
     var tokenId = settings.BookStack.ApiTokenId;
     var tokenSecret = settings.BookStack.ApiTokenSecret;
 
-    WriteLine("Get user id ...");
+    Console.WriteLine("Get user id ...");
     var tokenUserId = await mysql.ExecuteScalarAsync<uint?>(
         sql: "select id from users where name = @user",
         param: new { user = tokenUser }
     ) ?? throw new Exception($"User '{tokenUser}' not found");
-    WriteLine($".. User: {tokenUser} [{tokenUserId}]");
+    Console.WriteLine($".. User: {tokenUser} [{tokenUserId}]");
 
-    WriteLine("Check token id ...");
+    Console.WriteLine("Check token id ...");
     var existingTokens = await mysql.QueryAsync(
         sql: "select user_id, token_id from api_tokens where user_id = @user_id or token_id = @token_id",
         param: new { user_id = tokenUserId, token_id = tokenId, },
@@ -52,12 +55,12 @@ async Task makeTestApiTokenAsync(InstanceSettings settings)
     {
         var satisfy = existingTokens.Any(t => t.token_id == tokenId && t.user_id == tokenUserId);
         if (!satisfy) throw new Exception("Duplicate token ID for other user");
-        WriteLine(".. Already exists");
+        Console.WriteLine(".. Already exists");
         return;
     }
-    WriteLine(".. Not exists");
+    Console.WriteLine(".. Not exists");
 
-    WriteLine("Create api token ...");
+    Console.WriteLine("Create api token ...");
     var hashSalt = BCrypt.Net.BCrypt.GenerateSalt(12, 'y');
     var secretHash = BCrypt.Net.BCrypt.HashPassword(tokenSecret, hashSalt);
     var tokenParam = new
@@ -72,5 +75,5 @@ async Task makeTestApiTokenAsync(InstanceSettings settings)
         sql: "insert into api_tokens (name, user_id, token_id, secret, expires_at) values (@name, @user_id, @token_id, @secret, @expires_at)",
         param: tokenParam
     );
-    WriteLine(".. Token created");
+    Console.WriteLine(".. Token created");
 }

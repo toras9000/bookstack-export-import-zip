@@ -1,25 +1,25 @@
-#r "nuget: BookStackApiClient, 25.7.0-lib.1"
-#r "nuget: Kokuban, 0.2.0"
-#r "nuget: Lestaly.General, 0.102.0"
-#load ".settings.csx"
-#nullable enable
-using System.Threading;
-using BookStackApiClient;
+#!/usr/bin/env -S dotnet run --file
+#:package BookStackApiClient@25.12.0-lib.0
+#:package Kokuban@0.2.0
+#:package Lestaly.General@0.114.0
+#:package RefFile@0.2.0
+#:property PublishAot=false
 using BookStackApiClient.Utility;
 using Kokuban;
 using Lestaly;
+[assembly: RefFile(".settings.cs1")]
 
-return await Paved.ProceedAsync(noPause: Args.RoughContains("--no-pause"), async () =>
+return await Paved.ProceedAsync(noPause: args.RoughContains("--no-pause"), async () =>
 {
+    var settings = new Settings(ThisSource.Directory());
     var instance = settings.Instance2;
 
     // Prepare console
-    using var outenc = ConsoleWig.OutputEncodingPeriod(Encoding.UTF8);
     using var signal = new SignalCancellationPeriod();
 
     // Show info
-    WriteLine($"Delete all books in BookStack.");
-    WriteLine($"BookStack Service URL : {instance.BookStack.Url}");
+    Console.WriteLine($"Delete all books in BookStack.");
+    Console.WriteLine($"BookStack Service URL : {instance.BookStack.Url}");
 
     // Create client and helper
     var apiEndpoint = instance.BookStack.ApiEndpoint;
@@ -28,14 +28,14 @@ return await Paved.ProceedAsync(noPause: Args.RoughContains("--no-pause"), async
     using var helper = new BookStackClientHelper(apiEndpoint, apiToken, apiSecret, signal.Token);
     helper.LimitHandler += (args) =>
     {
-        WriteLine(Chalk.Yellow[$"Caught in API call rate limitation. Rate limit: {args.Exception.RequestsPerMin} [per minute], {args.Exception.RetryAfter} seconds to lift the limit."]);
-        WriteLine(Chalk.Yellow[$"It will automatically retry after a period of time has elapsed."]);
-        WriteLine(Chalk.Yellow[$"[Waiting...]"]);
+        Console.WriteLine(Chalk.Yellow[$"Caught in API call rate limitation. Rate limit: {args.Exception.RequestsPerMin} [per minute], {args.Exception.RetryAfter} seconds to lift the limit."]);
+        Console.WriteLine(Chalk.Yellow[$"It will automatically retry after a period of time has elapsed."]);
+        Console.WriteLine(Chalk.Yellow[$"[Waiting...]"]);
         return ValueTask.CompletedTask;
     };
 
     // Delete image gallery images
-    WriteLine($"Delete Gallery Images");
+    Console.WriteLine($"Delete Gallery Images");
     while (true)
     {
         // Get a list of images
@@ -45,13 +45,13 @@ return await Paved.ProceedAsync(noPause: Args.RoughContains("--no-pause"), async
         // Delete each image
         foreach (var image in images.data)
         {
-            WriteLine($"..  Delete Image [{image.id}] {Chalk.Green[image.name]}");
+            Console.WriteLine($"..  Delete Image [{image.id}] {Chalk.Green[image.name]}");
             await helper.Try((c, t) => c.DeleteImageAsync(image.id, t));
         }
     }
 
     // Delete Books
-    WriteLine($"Delete Books");
+    Console.WriteLine($"Delete Books");
     while (true)
     {
         // Get a list of books
@@ -61,13 +61,13 @@ return await Paved.ProceedAsync(noPause: Args.RoughContains("--no-pause"), async
         // Delete each book
         foreach (var book in books.data)
         {
-            WriteLine($"Delete [{book.id}] {Chalk.Green[book.name]}");
+            Console.WriteLine($"Delete [{book.id}] {Chalk.Green[book.name]}");
             await helper.Try((c, t) => c.DeleteBookAsync(book.id, t));
         }
     }
 
     // Delete Shelves
-    WriteLine($"Delete Shelves");
+    Console.WriteLine($"Delete Shelves");
     while (true)
     {
         // Get a list of shelves
@@ -77,13 +77,13 @@ return await Paved.ProceedAsync(noPause: Args.RoughContains("--no-pause"), async
         // Delete each shelf
         foreach (var shelf in shelves.data)
         {
-            WriteLine($"Delete [{shelf.id}] {Chalk.Green[shelf.name]}");
+            Console.WriteLine($"Delete [{shelf.id}] {Chalk.Green[shelf.name]}");
             await helper.Try((c, t) => c.DeleteShelfAsync(shelf.id, t));
         }
     }
 
     // Empty the trash
-    WriteLine($"Destroy RecycleBin");
+    Console.WriteLine($"Destroy RecycleBin");
     while (true)
     {
         // Get a list of books
@@ -93,11 +93,11 @@ return await Paved.ProceedAsync(noPause: Args.RoughContains("--no-pause"), async
         // Delete Trash Items
         foreach (var recycle in recycles.data)
         {
-            WriteLine($"Destroy [{recycle.id}]");
+            Console.WriteLine($"Destroy [{recycle.id}]");
             await helper.Try((c, t) => c.DestroyRecycleItemAsync(recycle.id, t));
         }
     }
 
-    WriteLine($"Completed");
+    Console.WriteLine($"Completed");
 });
 

@@ -1,5 +1,5 @@
-#r "nuget: BookStackApiClient, 25.7.0-lib.1"
-#nullable enable
+#!/usr/bin/env -S dotnet run --file
+#:package BookStackApiClient@25.12.0-lib.0
 using BookStackApiClient;
 
 record ExportMetadata(string service_url, string instance_id, BookStackVersion version, DateTime export_at);
